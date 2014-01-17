@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Author: Arem CHekunov
+# Author: Arem Chekunov
 # Author email: scorp.dev.null@gmail.com
 # repo: https://github.com/sc0rp1us/cehf-useful-scripts
 # env and func's

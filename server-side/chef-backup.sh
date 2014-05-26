@@ -49,7 +49,7 @@ cd ${_SYS_TMP}
     if [[ -e ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ]]; then
         mv ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2{,.previous}
     fi
-    tar cjf ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ${_BACKUP_NAME}
+    tar cjfP ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ${_SYS_TMP}/${_BACKUP_NAME}
     chown -R ${_BACKUP_USER}:${_BACKUP_USER} ${_BACKUP_DIR}/chef-backup/
     chmod -R g-rwx,o-rwx ${_BACKUP_DIR}/chef-backup/
     
@@ -60,7 +60,7 @@ cd ${_SYS_TMP}
 
 _chefRestore(){
 echo "Restorre function"
-    _TMP_RESTORE=${_SYS_TMP}/restore ; mkdir -p ${_TMP_RESTORE}
+    _TMP_RESTORE=${_SYS_TMP}/restore/tmp ; mkdir -p ${_TMP_RESTORE}
     if [[ ! -f ${source} ]]; then
         echo "ERROR: file ${source} do not exist"
         exit 1
@@ -69,7 +69,7 @@ echo "Restorre function"
     set -e
     set -x
 
-    tar xjf ${source} -C ${_TMP_RESTORE}
+    tar xjfP ${source} -C ${_TMP_RESTORE}
         mv /var/opt/chef-server/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
         mv /var/opt/chef-server/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
         if [[ -d /var/opt/chef-server/bookshelf/data/bookshelf ]]; then 
@@ -81,7 +81,7 @@ echo "Restorre function"
     _TMP_RESTORE_D=$(pwd)
 
         chef-server-ctl reconfigure
-        su - opscode-pgsql -c "/opt/chef-server/embedded/bin/psql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql"
+        /opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
         chef-server-ctl stop
 
         cp -a ${_TMP_RESTORE_D}/nginx/ca/              /var/opt/chef-server/nginx/
@@ -141,3 +141,4 @@ else
 	syntax
 	exit 1
 fi
+

@@ -8,6 +8,13 @@ _BACKUP_USER="backup"
 _BACKUP_DIR="/var/backups"
 _SYS_TMP="/tmp"
 _TMP="${_SYS_TMP}/${_BACKUP_NAME}"
+
+cd $(dirname $0)
+
+if [ -f ../etc/chef-backup.conf ]; then
+    . ../etc/chef-backup.conf
+fi
+
 _pg_dump(){
 su - opscode-pgsql -c "/opt/chef-server/embedded/bin/pg_dump -c opscode_chef"
 }

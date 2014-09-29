@@ -67,7 +67,7 @@ cd ${_SYS_TMP}
 
 
 _chefRestore(){
-echo "Restorre function"
+echo "Restore function"
     _TMP_RESTORE=${_SYS_TMP}/restore/tmp ; mkdir -p ${_TMP_RESTORE}
     if [[ ! -f ${source} ]]; then
         echo "ERROR: file ${source} do not exist"
@@ -107,12 +107,12 @@ echo "Restorre function"
 
 # tests
 if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]];then
-    echo "Use it script only on chef-server V11"
+    echo "This script can only run on Chef server version 11."
     exit 1
 fi
 
 if [[ $(id -u) -ne 0 ]]; then
-    echo "You should to be root"
+    echo "You must be root to run this script."
     exit 1
 fi
 

@@ -61,7 +61,6 @@ cd ${_SYS_TMP}
     tar cjfP ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ${_SYS_TMP}/${_BACKUP_NAME}
     chown -R ${_BACKUP_USER}:${_BACKUP_USER} ${_BACKUP_DIR}/chef-backup/
     chmod -R g-rwx,o-rwx ${_BACKUP_DIR}/chef-backup/
-    
 
     rm -Rf ${_TMP}
 }
@@ -81,12 +80,12 @@ echo "Restore function"
     tar xjfP ${source} -C ${_TMP_RESTORE}
         mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
         mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then 
+        if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then
             mv ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
         fi
         _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
 
-    cd ${_TMP_RESTORE}/* 
+    cd ${_TMP_RESTORE}/*
     _TMP_RESTORE_D=$(pwd)
 
         chef-server-ctl reconfigure
@@ -96,28 +95,29 @@ echo "Restore function"
         cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
         cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
         cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
-        
+
 
         chef-server-ctl start
         sleep 30
         chef-server-ctl reindex
-    
+
         cd ~
         rm -Rf ${_TMP_RESTORE}
 }
 
-# tests
+# make sure chef 11 is installed
 if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]];then
     echo "This script can only run on Chef server version 11."
     exit 1
 fi
 
+# make sure the script is run as root
 if [[ $(id -u) -ne 0 ]]; then
     echo "You must be root to run this script."
     exit 1
 fi
 
-# body
+# parse the args passed in via cli
 while [ "$#" -gt 0 ] ; do
     case "$1" in
         -h|--help)
@@ -143,11 +143,10 @@ done
 
 
 if [[ ${action} == "backup" ]];then
-	_chefBackup
+    _chefBackup
 elif [[ ${action} == "restore" ]];then
-	_chefRestore
-else 
-	syntax
-	exit 1
+    _chefRestore
+else
+    syntax
+    exit 1
 fi
-

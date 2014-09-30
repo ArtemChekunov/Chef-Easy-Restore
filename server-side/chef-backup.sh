@@ -6,6 +6,7 @@
 _BACKUP_NAME="chef-backup_$(date +%Y-%m-%d)"
 _BACKUP_USER="backup"
 _BACKUP_DIR="/var/backups"
+_CHEF_DATA_DIR="/var/opt/chef-server"
 _SYS_TMP="/tmp"
 
 cd $(dirname $0)
@@ -47,8 +48,8 @@ mkdir -p ${_TMP}/postgresql
 mkdir -p ${_BACKUP_DIR}/chef-backup
 
 # Backp of files
-cp -a /var/opt/chef-server/nginx/{ca,etc} ${_TMP}/nginx
-cp -a /var/opt/chef-server/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
+cp -a ${_CHEF_DATA_DIR}/nginx/{ca,etc} ${_TMP}/nginx
+cp -a ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
 
 # Backup of database
 _pg_dump > ${_TMP}/postgresql/pg_opscode_chef.sql
@@ -67,7 +68,7 @@ cd ${_SYS_TMP}
 
 
 _chefRestore(){
-echo "Restorre function"
+echo "Restore function"
     _TMP_RESTORE=${_SYS_TMP}/restore/tmp ; mkdir -p ${_TMP_RESTORE}
     if [[ ! -f ${source} ]]; then
         echo "ERROR: file ${source} do not exist"
@@ -78,12 +79,12 @@ echo "Restorre function"
     set -x
 
     tar xjfP ${source} -C ${_TMP_RESTORE}
-        mv /var/opt/chef-server/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        mv /var/opt/chef-server/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        if [[ -d /var/opt/chef-server/bookshelf/data/bookshelf ]]; then 
-            mv /var/opt/chef-server/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+        mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+        mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+        if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then 
+            mv ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
         fi
-        _pg_dump > /var/opt/chef-server/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
+        _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
 
     cd ${_TMP_RESTORE}/* 
     _TMP_RESTORE_D=$(pwd)
@@ -92,9 +93,9 @@ echo "Restorre function"
         /opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
         chef-server-ctl stop
 
-        cp -a ${_TMP_RESTORE_D}/nginx/ca/              /var/opt/chef-server/nginx/
-        cp -a ${_TMP_RESTORE_D}/nginx/etc/             /var/opt/chef-server/nginx/
-        cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   /var/opt/chef-server/bookshelf/data/
+        cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
+        cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
+        cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
         
 
         chef-server-ctl start
@@ -107,12 +108,12 @@ echo "Restorre function"
 
 # tests
 if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]];then
-    echo "Use it script only on chef-server V11"
+    echo "This script can only run on Chef server version 11."
     exit 1
 fi
 
 if [[ $(id -u) -ne 0 ]]; then
-    echo "You should to be root"
+    echo "You must be root to run this script."
     exit 1
 fi
 

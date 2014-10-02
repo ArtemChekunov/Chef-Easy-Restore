@@ -5,9 +5,12 @@
 # env and func's
 _BACKUP_NAME="chef-backup_$(date +%Y-%m-%d)"
 _BACKUP_USER="backup"
+_BACKUP_GROUP="backup"
 _BACKUP_DIR="/var/backups"
 _CHEF_DATA_DIR="/var/opt/chef-server"
 _SYS_TMP="/tmp"
+_PUSHTOS3="false"
+_S3_SUCCESS_STAMP="${_BACKUP_DIR}/chef-backup/s3_push_timestamp"
 
 cd $(dirname $0)
 
@@ -24,6 +27,7 @@ syntax(){
         echo ""
         echo -e "\t$0 --backup                  # for backup"
         echo -e "\t$0 --restore </from>.tar.bz2 # for restore"
+        echo -e "\t$0 --pushtos3                # push backup to S3"
         echo ""
 }
 
@@ -59,8 +63,8 @@ cd ${_SYS_TMP}
         mv ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2{,.previous}
     fi
     tar cjfP ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ${_SYS_TMP}/${_BACKUP_NAME}
-    chown -R ${_BACKUP_USER}:${_BACKUP_USER} ${_BACKUP_DIR}/chef-backup/
-    chmod -R g-rwx,o-rwx ${_BACKUP_DIR}/chef-backup/
+    chown -R ${_BACKUP_USER}:${_BACKUP_GROUP} ${_BACKUP_DIR}/chef-backup/
+    chmod -R o-rwx ${_BACKUP_DIR}/chef-backup/
 
     rm -Rf ${_TMP}
 }
@@ -105,8 +109,24 @@ echo "Restore function"
         rm -Rf ${_TMP_RESTORE}
 }
 
+_pushToS3(){
+    if [[ ! -x /usr/bin/s3cmd ]]; then
+        echo "Pushing backups to S3 requires the s3cmd command."
+        exit 1
+    fi
+
+    if [[ -z ${_S3_URI} ]]; then
+        echo "To push backups to S3 you must set the _S3_URI variable within chef-backup.conf"
+        exit 1
+    fi
+
+    s3cmd put ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ${_S3_URI}/chef-backup-$(date +%m_%d_%Y-%H_%M_%S).tar.gz
+    touch ${_S3_SUCCESS_STAMP}
+
+}
+
 # make sure chef 11 is installed
-if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]];then
+if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]]; then
     echo "This script can only run on Chef server version 11."
     exit 1
 fi
@@ -133,6 +153,10 @@ while [ "$#" -gt 0 ] ; do
             source="${2}"
             break
             ;;
+        --pushtos3)
+            _PUSHTOS3="true"
+            shift 1
+            ;;
         *)
             syntax
             exit 1
@@ -141,10 +165,15 @@ while [ "$#" -gt 0 ] ; do
     esac
 done
 
-
-if [[ ${action} == "backup" ]];then
+# perform back or restore based on action passed in
+if [[ ${action} == "backup" ]]; then
     _chefBackup
-elif [[ ${action} == "restore" ]];then
+
+    # optionally push the backup to S3
+    if [[ ${_PUSHTOS3} == 'true' ]]; then
+        _pushToS3
+    fi
+elif [[ ${action} == "restore" ]]; then
     _chefRestore
 else
     syntax

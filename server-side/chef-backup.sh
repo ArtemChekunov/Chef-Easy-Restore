@@ -72,22 +72,22 @@ cd ${_SYS_TMP}
 
 _chefRestore(){
 echo "Restore function"
-    _TMP_RESTORE=${_SYS_TMP}/restore/tmp ; mkdir -p ${_TMP_RESTORE}
+    _TMP_RESTORE=${_SYS_TMP}/chef-restore/ ; mkdir -p ${_TMP_RESTORE}
     if [[ ! -f ${source} ]]; then
-        echo "ERROR: file ${source} do not exist"
+        echo "ERROR: Restore source file ${source} do not exist.  The source must be a fully qualified path"
         exit 1
     fi
 
     set -e
     set -x
 
-    tar xjfP ${source} -C ${_TMP_RESTORE}
-        mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then
-            mv ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-        fi
-        _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
+    tar xjfp ${source} -C ${_TMP_RESTORE}
+    mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+    mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+    if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then
+        mv ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+    fi
+    _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
 
     cd ${_TMP_RESTORE}/*
     _TMP_RESTORE_D=$(pwd)

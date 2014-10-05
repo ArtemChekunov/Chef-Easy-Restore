@@ -93,7 +93,7 @@ _chefRestore(){
     _TMP_RESTORE_D=$(pwd)
 
     chef-server-ctl reconfigure
-    /opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
+    su - opscode-pgsql -c "/opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef" < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
     chef-server-ctl stop
 
     cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/

@@ -12,7 +12,7 @@ _SYS_TMP="/tmp"
 _PUSHTOS3="false"
 _S3_SUCCESS_STAMP="${_BACKUP_DIR}/chef-backup/s3_push_timestamp"
 
-cd $(dirname $0)
+cd "$(dirname $0)"
 
 if [ -f ../etc/chef-backup.conf ]; then
     . ../etc/chef-backup.conf
@@ -21,44 +21,44 @@ fi
 _TMP="${_SYS_TMP}/${_BACKUP_NAME}"
 
 _pg_dump(){
-su - opscode-pgsql -c "/opt/chef-server/embedded/bin/pg_dump -c opscode_chef"
+    su - opscode-pgsql -c "/opt/chef-server/embedded/bin/pg_dump -c opscode_chef"
 }
+
 syntax(){
-        echo ""
-        echo -e "\t$0 --backup                  # for backup"
-        echo -e "\t$0 --restore </from>.tar.bz2 # for restore"
-        echo -e "\t$0 --pushtos3                # push backup to S3"
-        echo ""
+    echo ""
+    echo -e "\t$0 --backup                  # for backup"
+    echo -e "\t$0 --restore </from>.tar.bz2 # for restore"
+    echo -e "\t$0 --pushtos3                # push backup to S3"
+    echo ""
 }
 
 _chefBackup(){
+    echo "Backup function"
 
-echo "Backup function"
-
-id ${_BACKUP_USER} &> /dev/null
+    id ${_BACKUP_USER} &> /dev/null
     _BACKUP_USER_EXIST=$?
     if [[ ${_BACKUP_USER_EXIST} -ne 0 ]]; then
         echo "You should to have backup user"
     fi
 
+    set -e
+    set -x
 
-set -e
-set -x
-# Create folders
-mkdir -p ${_TMP}
-mkdir -p ${_TMP}/nginx
-mkdir -p ${_TMP}/cookbooks
-mkdir -p ${_TMP}/postgresql
-mkdir -p ${_BACKUP_DIR}/chef-backup
+    # Create folders
+    mkdir -p ${_TMP}
+    mkdir -p ${_TMP}/nginx
+    mkdir -p ${_TMP}/cookbooks
+    mkdir -p ${_TMP}/postgresql
+    mkdir -p ${_BACKUP_DIR}/chef-backup
 
-# Backp of files
-cp -a ${_CHEF_DATA_DIR}/nginx/{ca,etc} ${_TMP}/nginx
-cp -a ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
+    # Backp of files
+    cp -a ${_CHEF_DATA_DIR}/nginx/{ca,etc} ${_TMP}/nginx
+    cp -a ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
 
-# Backup of database
-_pg_dump > ${_TMP}/postgresql/pg_opscode_chef.sql
+    # Backup of database
+    _pg_dump > ${_TMP}/postgresql/pg_opscode_chef.sql
 
-cd ${_SYS_TMP}
+    cd ${_SYS_TMP}
     if [[ -e ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2 ]]; then
         mv ${_BACKUP_DIR}/chef-backup/chef-backup.tar.bz2{,.previous}
     fi
@@ -71,7 +71,7 @@ cd ${_SYS_TMP}
 
 
 _chefRestore(){
-echo "Restore function"
+    echo "Restore function"
     _TMP_RESTORE=${_SYS_TMP}/chef-restore/ ; mkdir -p ${_TMP_RESTORE}
     if [[ ! -f ${source} ]]; then
         echo "ERROR: Restore source file ${source} do not exist.  The source must be a fully qualified path"
@@ -81,7 +81,7 @@ echo "Restore function"
     set -e
     set -x
 
-    tar xjfp ${source} -C ${_TMP_RESTORE}
+    tar xjfp "${source}" -C ${_TMP_RESTORE}
     mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
     mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
     if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then

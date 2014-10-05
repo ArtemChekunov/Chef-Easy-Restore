@@ -89,24 +89,24 @@ echo "Restore function"
     fi
     _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
 
-    cd ${_TMP_RESTORE}/*
+    cd ${_TMP_RESTORE}/tmp/*
     _TMP_RESTORE_D=$(pwd)
 
-        chef-server-ctl reconfigure
-        /opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
-        chef-server-ctl stop
+    chef-server-ctl reconfigure
+    /opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef  < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
+    chef-server-ctl stop
 
-        cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
-        cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
-        cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
+    cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
+    cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
+    cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
 
 
-        chef-server-ctl start
-        sleep 30
-        chef-server-ctl reindex
+    chef-server-ctl start
+    sleep 30
+    chef-server-ctl reindex
 
-        cd ~
-        rm -Rf ${_TMP_RESTORE}
+    cd ~
+    rm -Rf ${_TMP_RESTORE}
 }
 
 _pushToS3(){

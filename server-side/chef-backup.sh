@@ -7,7 +7,6 @@ _BACKUP_NAME="chef-backup_$(date +%Y-%m-%d)"
 _BACKUP_USER="backup"
 _BACKUP_GROUP="backup"
 _BACKUP_DIR="/var/backups"
-_CHEF_DATA_DIR="/var/opt/chef-server"
 _SYS_TMP="/tmp"
 _PUSHTOS3="false"
 _S3_SUCCESS_STAMP="${_BACKUP_DIR}/chef-backup/s3_push_timestamp"
@@ -20,8 +19,17 @@ fi
 
 _TMP="${_SYS_TMP}/${_BACKUP_NAME}"
 
+# chef 12 vs. chef 11 directory structure
+if [ -d "/var/opt/opscode" ]; then
+  _CHEF_DATA_DIR="/var/opt/opscode"
+  _CHEF_DIR="/opt/opscode"
+else
+    _CHEF_DATA_DIR="/var/opt/chef-server"
+    _CHEF_DIR="/opt/chef-server"
+fi
+
 _pg_dump(){
-    su - opscode-pgsql -c "/opt/chef-server/embedded/bin/pg_dump -c opscode_chef"
+    su - opscode-pgsql -c "${_CHEF_DIR}/embedded/bin/pg_dump -c opscode_chef"
 }
 
 syntax(){
@@ -93,7 +101,7 @@ _chefRestore(){
     _TMP_RESTORE_D=$(pwd)
 
     chef-server-ctl reconfigure
-    su - opscode-pgsql -c "/opt/chef-server/embedded/bin/psql -U opscode-pgsql opscode_chef" < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
+    su - opscode-pgsql -c "${_CHEF_DIR}/embedded/bin/psql -U opscode-pgsql opscode_chef" < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
     chef-server-ctl stop
 
     cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
@@ -126,8 +134,8 @@ _pushToS3(){
 }
 
 # make sure chef 11 is installed
-if [[ ! -x /opt/chef-server/embedded/bin/pg_dump ]]; then
-    echo "This script can only run on Chef server version 11."
+if [[ ! -x ${_CHEF_DIR}/embedded/bin/pg_dump ]]; then
+    echo "This script can only run on Chef server version 11 or 12."
     exit 1
 fi
 

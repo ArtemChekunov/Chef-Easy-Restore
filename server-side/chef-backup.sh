@@ -57,11 +57,13 @@ _chefBackup(){
     mkdir -p ${_TMP}/nginx
     mkdir -p ${_TMP}/cookbooks
     mkdir -p ${_TMP}/postgresql
+    mkdir -p ${_TMP}/etc
     mkdir -p ${_BACKUP_DIR}/chef-backup
 
     # Backp of files
     cp -a ${_CHEF_DATA_DIR}/nginx/{ca,etc} ${_TMP}/nginx
     cp -a ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
+    cp -a /etc/chef-server/ ${_TMP}/etc
 
     # Backup of database
     _pg_dump > ${_TMP}/postgresql/pg_opscode_chef.sql
@@ -107,6 +109,7 @@ _chefRestore(){
     cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
     cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
     cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
+    cp -a ${_TMP_RESTORE_D}/etc/chef-server/       /etc/
 
 
     chef-server-ctl start
@@ -133,7 +136,7 @@ _pushToS3(){
 
 }
 
-# make sure chef 11 is installed
+# make sure chef-server is installed
 if [[ ! -x ${_CHEF_DIR}/embedded/bin/pg_dump ]]; then
     echo "This script can only run on Chef server version 11 or 12."
     exit 1

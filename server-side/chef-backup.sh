@@ -8,6 +8,7 @@ _BACKUP_USER="backup"
 _BACKUP_GROUP="backup"
 _BACKUP_DIR="/var/backups"
 _SYS_TMP="/tmp"
+_ORGS=""
 _PUSHTOS3="false"
 _S3_SUCCESS_STAMP="${_BACKUP_DIR}/chef-backup/s3_push_timestamp"
 
@@ -20,11 +21,13 @@ fi
 _TMP="${_SYS_TMP}/${_BACKUP_NAME}"
 
 # chef 12 vs. chef 11 directory structure
-if [ -d "/var/opt/opscode" ]; then
-  _CHEF_DATA_DIR="/var/opt/opscode"
-  _CHEF_DIR="/opt/opscode"
+if [ -d "/opt/opscode" ]; then
+    _CHEF_DATA_DIR="/var/opt/opscode"
+    _CHEF_ETC_DIR="/etc/opscode"
+    _CHEF_DIR="/opt/opscode"
 else
     _CHEF_DATA_DIR="/var/opt/chef-server"
+    _CHEF_ETC_DIR="/etc/chef-server"
     _CHEF_DIR="/opt/chef-server"
 fi
 
@@ -37,6 +40,7 @@ syntax(){
     echo -e "\t$0 --backup                  # for backup"
     echo -e "\t$0 --restore </from>.tar.bz2 # for restore"
     echo -e "\t$0 --pushtos3                # push backup to S3"
+    echo -e "\t$0 --orgs                    # chef 12 organizations to reindex post restore"
     echo ""
 }
 
@@ -63,7 +67,7 @@ _chefBackup(){
     # Backp of files
     cp -a ${_CHEF_DATA_DIR}/nginx/{ca,etc} ${_TMP}/nginx
     cp -a ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf/ ${_TMP}/cookbooks
-    cp -a /etc/chef-server/ ${_TMP}/etc
+    cp -a ${_CHEF_ETC_DIR}/ ${_TMP}/etc
 
     # Backup of database
     _pg_dump > ${_TMP}/postgresql/pg_opscode_chef.sql
@@ -79,10 +83,17 @@ _chefBackup(){
     rm -Rf ${_TMP}
 }
 
-
 _chefRestore(){
     echo "Restore function"
     _TMP_RESTORE=${_SYS_TMP}/chef-restore/ ; mkdir -p ${_TMP_RESTORE}
+
+    if [ -d "/opt/opscode" ]; then
+        if [ "$_ORGS" = "" ]; then
+            echo "Chef 12 detected, but a comma sepparated list of orgs to reindex has not been provided.  Cannot Continue."
+            exit 1
+        fi
+    fi
+
     if [[ ! -f ${source} ]]; then
         echo "ERROR: Restore source file ${source} do not exist.  The source must be a fully qualified path"
         exit 1
@@ -92,15 +103,21 @@ _chefRestore(){
     set -x
 
     tar xjfp "${source}" -C ${_TMP_RESTORE}
-    mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
-    mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+    mv ${_CHEF_DATA_DIR}/nginx/ca{,.$(date +%Y-%m-%d_%H:%M:%S).bak}  || true
+    mv ${_CHEF_DATA_DIR}/nginx/etc{,.$(date +%Y-%m-%d_%H:%M:%S).bak} || true
     if [[ -d ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf ]]; then
         mv ${_CHEF_DATA_DIR}/bookshelf/data/bookshelf{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
+    fi
+    if [[ -d ${_CHEF_ETC_DIR}/ ]]; then
+        mv ${_CHEF_ETC_DIR}{,.$(date +%Y-%m-%d_%H:%M:%S).bak}
     fi
     _pg_dump > ${_CHEF_DATA_DIR}/pg_opscode_chef.sql.$(date +%Y-%m-%d_%H:%M:%S).bak
 
     cd ${_TMP_RESTORE}/tmp/*
     _TMP_RESTORE_D=$(pwd)
+
+    # the chef-server-secrets.json file needs to be in place before the reconfigure is run to get the correct passwords
+    cp -a ${_TMP_RESTORE_D}/${_CHEF_ETC_DIR}/     /etc/
 
     chef-server-ctl reconfigure
     su - opscode-pgsql -c "${_CHEF_DIR}/embedded/bin/psql -U opscode-pgsql opscode_chef" < ${_TMP_RESTORE_D}/postgresql/pg_opscode_chef.sql
@@ -109,12 +126,11 @@ _chefRestore(){
     cp -a ${_TMP_RESTORE_D}/nginx/ca/              ${_CHEF_DATA_DIR}/nginx/
     cp -a ${_TMP_RESTORE_D}/nginx/etc/             ${_CHEF_DATA_DIR}/nginx/
     cp -a ${_TMP_RESTORE_D}/cookbooks/bookshelf/   ${_CHEF_DATA_DIR}/bookshelf/data/
-    cp -a ${_TMP_RESTORE_D}/etc/chef-server/       /etc/
 
 
     chef-server-ctl start
     sleep 30
-    chef-server-ctl reindex
+    chef-server-ctl reindex ${_ORGS}
 
     cd ~
     rm -Rf ${_TMP_RESTORE}
@@ -162,15 +178,18 @@ while [ "$#" -gt 0 ] ; do
         --restore)
             action="restore"
             source="${2}"
-            break
+            shift 1
             ;;
         --pushtos3)
             _PUSHTOS3="true"
             shift 1
             ;;
+        --orgs)
+            _ORGS="${2}"
+            shift 1
+            ;;
         *)
-            syntax
-            exit 1
+            shift 1
             ;;
 
     esac
@@ -187,6 +206,7 @@ if [[ ${action} == "backup" ]]; then
 elif [[ ${action} == "restore" ]]; then
     _chefRestore
 else
+    echo "No valid action was provided. Cannot continue"
     syntax
     exit 1
 fi

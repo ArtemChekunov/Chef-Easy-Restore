@@ -3,12 +3,12 @@ cehf-useful-scripts
 
 Useful scripts for administrator of chef-server
 
-Usage
+How to easy backup and restore chef-opscode server 11.x and 12.x
 =====
 
     ./chef_backup.sh --backup                  # for backup
     ./chef_backup.sh --restore </from>.tar.bz2 # for restore
-    ./chef_backup.sh --pushtos3               # push backup to S3"
+    ./chef_backup.sh --pushtos3                # push backup to S3"
 
 
 Dependencies

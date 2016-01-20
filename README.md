@@ -1,7 +1,7 @@
-cehf-useful-scripts
+Chef Easy Restore
 ===================
 
-Useful scripts for administrator of chef-server
+Useful scripts for backup and restore of chef-server
 
 How to easy backup and restore chef-opscode server 11.x and 12.x
 =====

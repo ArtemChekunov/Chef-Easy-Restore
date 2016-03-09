@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Author: Arem Chekunov
-# Author email: scorp.dev.null@gmail.com
-# repo: https://github.com/sc0rp1us/cehf-useful-scripts
+# Author email: scorp.dev.null@gmail.com, artem.v.chekunov@gmail.com
+# repo: https://github.com/sc0rp1us/Chef-Easy-Restore
 # env and func's
 _BACKUP_NAME="chef-backup_$(date +%Y-%m-%d)"
 _BACKUP_USER="backup"
@@ -15,7 +15,7 @@ _S3_SUCCESS_STAMP="${_BACKUP_DIR}/chef-backup/s3_push_timestamp"
 cd "$(dirname $0)"
 
 if [ -f ../etc/chef-backup.conf ]; then
-    . ../etc/chef-backup.conf
+    source ../etc/chef-backup.conf
 fi
 
 _TMP="${_SYS_TMP}/${_BACKUP_NAME}"
@@ -31,11 +31,11 @@ else
     _CHEF_DIR="/opt/chef-server"
 fi
 
-_pg_dump(){
+function _pg_dump(){
     su - opscode-pgsql -c "${_CHEF_DIR}/embedded/bin/pg_dump -c opscode_chef"
 }
 
-syntax(){
+function syntax(){
     echo ""
     echo -e "\t$0 --backup                  # for backup"
     echo -e "\t$0 --restore </from>.tar.bz2 # for restore"
@@ -44,7 +44,7 @@ syntax(){
     echo ""
 }
 
-_chefBackup(){
+function _chefBackup(){
     echo "Backup function"
 
     id ${_BACKUP_USER} &> /dev/null
@@ -83,7 +83,7 @@ _chefBackup(){
     rm -Rf ${_TMP}
 }
 
-_chefRestore(){
+function _chefRestore(){
     echo "Restore function"
     _TMP_RESTORE=${_SYS_TMP}/chef-restore/ ; mkdir -p ${_TMP_RESTORE}
 
@@ -136,7 +136,7 @@ _chefRestore(){
     rm -Rf ${_TMP_RESTORE}
 }
 
-_pushToS3(){
+function _pushToS3(){
     if [[ ! -x /usr/bin/s3cmd ]]; then
         echo "Pushing backups to S3 requires the s3cmd command."
         exit 1
@@ -159,7 +159,7 @@ if [[ ! -x ${_CHEF_DIR}/embedded/bin/pg_dump ]]; then
 fi
 
 # make sure the script is run as root
-if [[ $(id -u) -ne 0 ]]; then
+if [ $(id -u) -ne 0 ]; then
     echo "You must be root to run this script."
     exit 1
 fi
